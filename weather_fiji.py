@@ -45,12 +45,17 @@ def cyclone_check():
     except Exception as e:
         print(f"Error checking FMS website: {e}")
 
+# --- This is the very bottom of your file ---
+
 # Get current time in Fiji
 now = datetime.datetime.now(FIJI_TZ)
 
-# 7 AM daily message (Fiji Time)
-#if now.hour == 7:
-    daily_weather()
+# TEST: Run this now to see if Discord works (Make sure there are 0 spaces before 'daily_weather')
+daily_weather()
+
+# This part is currently ignored for the test
+# if now.hour == 7:
+#     daily_weather()
 
 # Always check for cyclone alerts
 cyclone_check()
