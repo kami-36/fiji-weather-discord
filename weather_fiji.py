@@ -4,7 +4,7 @@ import datetime
 import pytz
 
 # Securely fetch the webhook URL from GitHub Secrets
-WEBHOOK_URL = os.getenv("DISCORD_WEBHOOK")
+WEBHOOK_URL = os.getenv("WEBHOOKDISCORDWEATHER")
 
 FIJI_TZ = pytz.timezone("Pacific/Fiji")
 
