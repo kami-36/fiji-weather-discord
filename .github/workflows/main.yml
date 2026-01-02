@@ -21,6 +21,7 @@ jobs:
 
       - name: Run weather script
         env:
-          # This MUST match the name in your second screenshot
+          # This name (DISCORD_WEBHOOK) is what Python looks for (os.getenv)
+          # This name (WEBHOOKDISCORDWEATHER) MUST match your GitHub secret name
           DISCORD_WEBHOOK: ${{ secrets.WEBHOOKDISCORDWEATHER }}
         run: python weather_fiji.py
