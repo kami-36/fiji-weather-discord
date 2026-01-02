@@ -3,8 +3,8 @@ import requests
 import datetime
 import pytz
 
-# Securely fetch the webhook URL from GitHub Secrets
-WEBHOOK_URL = os.getenv("WEBHOOKDISCORDWEATHER")
+# Securely fetch the webhook URL from the environment variable
+WEBHOOK_URL = os.getenv("DISCORD_WEBHOOK")
 
 FIJI_TZ = pytz.timezone("Pacific/Fiji")
 
@@ -16,8 +16,9 @@ def send(msg):
     try:
         response = requests.post(WEBHOOK_URL, json={"content": msg})
         response.raise_for_status()
-    except requests.exceptions.RequestException as e:
-        print(f"Failed to send message to Discord: {e}")
+        print("Message sent successfully!")
+    except Exception as e:
+        print(f"Failed to send: {e}")
 
 def daily_weather():
     today = datetime.datetime.now(FIJI_TZ).strftime("%A, %d %B %Y")
@@ -30,30 +31,23 @@ def daily_weather():
     send(msg)
 
 def cyclone_check():
-    # Simple check using FMS homepage
     try:
         page = requests.get("https://www.met.gov.fj", timeout=10).text.lower()
         keywords = ["cyclone", "warning", "alert", "tropical"]
-
         if any(k in page for k in keywords):
-            send(
-                "🚨 **WEATHER ALERT – FIJI**\n"
-                "Possible cyclone or severe warning issued.\n"
-                "👉 Check official site immediately:\n"
-                "https://www.met.gov.fj"
-            )
+            send("🚨 **WEATHER ALERT – FIJI**\nPossible cyclone/severe warning. Check: https://www.met.gov.fj")
     except Exception as e:
-        print(f"Error checking FMS website: {e}")
+        print(f"Error checking FMS: {e}")
 
-# --- At the very bottom of weather_fiji.py ---
-
-# Get current time in Fiji
+# MAIN EXECUTION
 now = datetime.datetime.now(FIJI_TZ)
 
-# FOR TESTING: Remove the "if" statement so it always sends
-print("Attempting to send daily weather update...")
-daily_weather()
+# TEST MODE: This will run every time you click "Run Workflow"
+print(f"Current Fiji Time: {now.strftime('%H:%M')}")
+daily_weather() 
 
-# Always check for cyclone alerts
-print("Checking for cyclone alerts...")
+# Once testing is done, replace the daily_weather() line above with:
+# if now.hour == 7:
+#     daily_weather()
+
 cyclone_check()
