@@ -26,5 +26,5 @@ jobs:
       - name: Run weather script
         # This section connects your GitHub Secret to your Python script
         env:
-          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+          DISCORD_WEBHOOK: ${{ secrets.WEBHOOKDISCORDWEATHER }}
         run: python weather_fiji.py
