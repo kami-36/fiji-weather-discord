@@ -1,13 +1,23 @@
+import os
 import requests
 import datetime
 import pytz
 
-WEBHOOK_URL = "https://discord.com/api/webhooks/1456627542306848789/I0sYkn2slmLWOEmqWrfYT4vBp6Su1zsbMHGAIdgNTS_qHibyS8F8JEWznxccBZg-WZsj"
+# Securely fetch the webhook URL from GitHub Secrets
+WEBHOOK_URL = os.getenv("DISCORD_WEBHOOK")
 
 FIJI_TZ = pytz.timezone("Pacific/Fiji")
 
 def send(msg):
-    requests.post(WEBHOOK_URL, json={"content": msg})
+    if not WEBHOOK_URL:
+        print("Error: DISCORD_WEBHOOK environment variable is not set.")
+        return
+    
+    try:
+        response = requests.post(WEBHOOK_URL, json={"content": msg})
+        response.raise_for_status()
+    except requests.exceptions.RequestException as e:
+        print(f"Failed to send message to Discord: {e}")
 
 def daily_weather():
     today = datetime.datetime.now(FIJI_TZ).strftime("%A, %d %B %Y")
@@ -21,20 +31,24 @@ def daily_weather():
 
 def cyclone_check():
     # Simple check using FMS homepage
-    page = requests.get("https://www.met.gov.fj").text.lower()
-    keywords = ["cyclone", "warning", "alert", "tropical"]
+    try:
+        page = requests.get("https://www.met.gov.fj", timeout=10).text.lower()
+        keywords = ["cyclone", "warning", "alert", "tropical"]
 
-    if any(k in page for k in keywords):
-        send(
-            "🚨 **WEATHER ALERT – FIJI**\n"
-            "Possible cyclone or severe warning issued.\n"
-            "👉 Check official site immediately:\n"
-            "https://www.met.gov.fj"
-        )
+        if any(k in page for k in keywords):
+            send(
+                "🚨 **WEATHER ALERT – FIJI**\n"
+                "Possible cyclone or severe warning issued.\n"
+                "👉 Check official site immediately:\n"
+                "https://www.met.gov.fj"
+            )
+    except Exception as e:
+        print(f"Error checking FMS website: {e}")
 
+# Get current time in Fiji
 now = datetime.datetime.now(FIJI_TZ)
 
-# 7 AM daily message
+# 7 AM daily message (Fiji Time)
 if now.hour == 7:
     daily_weather()
 
