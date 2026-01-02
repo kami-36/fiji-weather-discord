@@ -1,0 +1,26 @@
+name: Fiji Weather Alerts
+
+on:
+  schedule:
+    - cron: "0 * * * *"   # Runs every hour
+  workflow_dispatch:      # This creates the "Run" button for testing
+
+jobs:
+  run-weather:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install requests pytz
+
+      - name: Run weather script
+        env:
+          # This MUST match the name in your second screenshot
+          DISCORD_WEBHOOK: ${{ secrets.WEBHOOKDISCORDWEATHER }}
+        run: python weather_fiji.py
