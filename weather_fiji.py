@@ -49,7 +49,7 @@ def cyclone_check():
 now = datetime.datetime.now(FIJI_TZ)
 
 # 7 AM daily message (Fiji Time)
-if now.hour == 7:
+#if now.hour == 7:
     daily_weather()
 
 # Always check for cyclone alerts
