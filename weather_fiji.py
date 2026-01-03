@@ -3,51 +3,62 @@ import requests
 import datetime
 import pytz
 
-# Securely fetch the webhook URL from the environment variable
+# Config
 WEBHOOK_URL = os.getenv("DISCORD_WEBHOOK")
-
+API_KEY = os.getenv("WEATHER_API_KEY")
 FIJI_TZ = pytz.timezone("Pacific/Fiji")
 
-def send(msg):
-    if not WEBHOOK_URL:
-        print("Error: DISCORD_WEBHOOK environment variable is not set.")
-        return
+LOCATIONS = [
+    {"name": "Suva City", "lat": -18.1416, "lon": 178.4419},
+    {"name": "Narere", "lat": -18.0833, "lon": 178.5167},
+    {"name": "Khalsa Road", "lat": -18.1000, "lon": 178.4667}
+]
+
+def get_weather(lat, lon):
+    # Using forecast endpoint to get 'pop' (probability of precipitation)
+    url = f"https://api.openweathermap.org/data/2.5/forecast?lat={lat}&lon={lon}&appid={API_KEY}&units=metric&cnt=1"
+    try:
+        r = requests.get(url).json()
+        data = r['list'][0]
+        return {
+            "temp": round(data['main']['temp']),
+            "desc": data['weather'][0]['description'].capitalize(),
+            "rain": round(data.get('pop', 0) * 100),
+            "wind": round(data['wind']['speed'] * 3.6), # Convert m/s to km/h
+            "hum": data['main']['humidity']
+        }
+    except:
+        return None
+
+def send_update():
+    now = datetime.datetime.now(FIJI_TZ)
+    time_str = now.strftime("%I:%M %p")
     
-    try:
-        response = requests.post(WEBHOOK_URL, json={"content": msg})
-        response.raise_for_status()
-        print("Message sent successfully!")
-    except Exception as e:
-        print(f"Failed to send: {e}")
+    embed_fields = []
+    extreme_wind = False
+    
+    for loc in LOCATIONS:
+        w = get_weather(loc['lat'], loc['lon'])
+        if w:
+            if w['wind'] >= 50: extreme_wind = True
+            
+            field_val = (f"🌡️ {w['temp']}°C | ☁️ {w['desc']}\n"
+                         f"☔ Rain: {w['rain']}% | 💨 Wind: {w['wind']} km/h")
+            embed_fields.append({"name": f"📍 {loc['name']}", "value": field_val, "inline": False})
 
-def daily_weather():
-    today = datetime.datetime.now(FIJI_TZ).strftime("%A, %d %B %Y")
-    msg = (
-        f"🌤 **Daily Weather – Fiji**\n"
-        f"📅 {today}\n\n"
-        f"Check official forecast:\n"
-        f"https://www.met.gov.fj"
-    )
-    send(msg)
+    # Discord Webhook Payload
+    payload = {
+        "content": "@everyone ⚠️ **HIGH WIND ALERT**" if extreme_wind else "",
+        "embeds": [{
+            "title": f"🇫🇯 Fiji Weather Update - {time_str}",
+            "description": f"Detailed report for {now.strftime('%A, %d %B %Y')}",
+            "color": 3447003, # Blue color
+            "fields": embed_fields,
+            "footer": {"text": "Data: OpenWeatherMap | Fiji Meteorological Service"}
+        }]
+    }
+    
+    requests.post(WEBHOOK_URL, json=payload)
 
-def cyclone_check():
-    try:
-        page = requests.get("https://www.met.gov.fj", timeout=10).text.lower()
-        keywords = ["cyclone", "warning", "alert", "tropical"]
-        if any(k in page for k in keywords):
-            send("🚨 **WEATHER ALERT – FIJI**\nPossible cyclone/severe warning. Check: https://www.met.gov.fj")
-    except Exception as e:
-        print(f"Error checking FMS: {e}")
-
-# MAIN EXECUTION
-now = datetime.datetime.now(FIJI_TZ)
-
-# TEST MODE: This will run every time you click "Run Workflow"
-print(f"Current Fiji Time: {now.strftime('%H:%M')}")
-daily_weather() 
-
-# Once testing is done, replace the daily_weather() line above with:
-# if now.hour == 7:
-#     daily_weather()
-
-cyclone_check()
+if __name__ == "__main__":
+    send_update()
