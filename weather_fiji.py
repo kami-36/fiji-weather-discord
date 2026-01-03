@@ -3,62 +3,55 @@ import requests
 import datetime
 import pytz
 
-# Config
+# Securely fetch the webhook and API key
 WEBHOOK_URL = os.getenv("DISCORD_WEBHOOK")
-API_KEY = os.getenv("WEATHER_API_KEY")
+WEATHER_API_KEY = os.getenv("WEATHER_API_KEY")
+
 FIJI_TZ = pytz.timezone("Pacific/Fiji")
 
-LOCATIONS = [
-    {"name": "Suva City", "lat": -18.1416, "lon": 178.4419},
-    {"name": "Narere", "lat": -18.0833, "lon": 178.5167},
-    {"name": "Khalsa Road", "lat": -18.1000, "lon": 178.4667}
-]
+def send_to_discord(content=None, embed=None):
+    payload = {}
+    if content: payload["content"] = content
+    if embed: payload["embeds"] = [embed]
+    
+    if not WEBHOOK_URL:
+        print("CRITICAL: Discord Webhook Secret is missing!")
+        return
 
-def get_weather(lat, lon):
-    # Using forecast endpoint to get 'pop' (probability of precipitation)
-    url = f"https://api.openweathermap.org/data/2.5/forecast?lat={lat}&lon={lon}&appid={API_KEY}&units=metric&cnt=1"
+    r = requests.post(WEBHOOK_URL, json=payload)
+    print(f"Discord Response: {r.status_code}")
+
+def get_weather():
+    # Testing with Suva coordinates
+    url = f"https://api.openweathermap.org/data/2.5/weather?lat=-18.1416&lon=178.4419&appid={WEATHER_API_KEY}&units=metric"
+    
+    if not WEATHER_API_KEY:
+        return "ERROR: WEATHER_API_KEY secret is missing in GitHub!"
+
     try:
-        r = requests.get(url).json()
-        data = r['list'][0]
+        response = requests.get(url)
+        data = response.json()
+        
+        if response.status_code != 200:
+            return f"ERROR: OpenWeather API says: {data.get('message', 'Unknown Error')}"
+
+        temp = round(data['main']['temp'])
+        desc = data['weather'][0]['description'].capitalize()
+        
         return {
-            "temp": round(data['main']['temp']),
-            "desc": data['weather'][0]['description'].capitalize(),
-            "rain": round(data.get('pop', 0) * 100),
-            "wind": round(data['wind']['speed'] * 3.6), # Convert m/s to km/h
-            "hum": data['main']['humidity']
+            "title": "🇫🇯 Fiji Weather Test",
+            "description": f"Successfully connected! \n📍 **Suva City**\n🌡️ **Temp:** {temp}°C\n☁️ **Conditions:** {desc}",
+            "color": 3066993 # Green
         }
-    except:
-        return None
+    except Exception as e:
+        return f"ERROR: Script crashed with: {str(e)}"
 
-def send_update():
-    now = datetime.datetime.now(FIJI_TZ)
-    time_str = now.strftime("%I:%M %p")
-    
-    embed_fields = []
-    extreme_wind = False
-    
-    for loc in LOCATIONS:
-        w = get_weather(loc['lat'], loc['lon'])
-        if w:
-            if w['wind'] >= 50: extreme_wind = True
-            
-            field_val = (f"🌡️ {w['temp']}°C | ☁️ {w['desc']}\n"
-                         f"☔ Rain: {w['rain']}% | 💨 Wind: {w['wind']} km/h")
-            embed_fields.append({"name": f"📍 {loc['name']}", "value": field_val, "inline": False})
+# RUN THE TEST
+result = get_weather()
 
-    # Discord Webhook Payload
-    payload = {
-        "content": "@everyone ⚠️ **HIGH WIND ALERT**" if extreme_wind else "",
-        "embeds": [{
-            "title": f"🇫🇯 Fiji Weather Update - {time_str}",
-            "description": f"Detailed report for {now.strftime('%A, %d %B %Y')}",
-            "color": 3447003, # Blue color
-            "fields": embed_fields,
-            "footer": {"text": "Data: OpenWeatherMap | Fiji Meteorological Service"}
-        }]
-    }
-    
-    requests.post(WEBHOOK_URL, json=payload)
-
-if __name__ == "__main__":
-    send_update()
+if isinstance(result, str):
+    # If result is a string, it's an error message
+    send_to_discord(content=f"🚨 **Bot Troubleshooting:** {result}")
+else:
+    # If result is a dictionary, it's a successful embed
+    send_to_discord(embed=result)
