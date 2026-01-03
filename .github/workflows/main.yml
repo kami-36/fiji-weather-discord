@@ -2,25 +2,23 @@ name: Fiji Weather Alerts
 
 on:
   schedule:
-    - cron: "0 * * * *"   # Runs every hour
-  workflow_dispatch:      # Manual trigger button
+    # 7 PM UTC (7 AM Fiji), 12 AM UTC (12 PM Fiji), 5 AM UTC (5 PM Fiji), 9 AM UTC (9 PM Fiji)
+    - cron: "0 19,0,5,9 * * *"
+  workflow_dispatch: 
 
 jobs:
   run-weather:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-
       - name: Install dependencies
         run: pip install requests pytz
-
       - name: Run weather script
         env:
-          # This connects your GitHub Secret to the Python script
           DISCORD_WEBHOOK: ${{ secrets.WEBHOOKDISCORDWEATHER }}
+          WEATHER_API_KEY: ${{ secrets.WEATHER_API_KEY }}
         run: python weather_fiji.py
