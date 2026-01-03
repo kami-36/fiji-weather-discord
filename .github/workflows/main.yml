@@ -2,7 +2,11 @@ name: Fiji Weather Alerts
 
 on:
   schedule:
-    # 7 PM UTC (7 AM Fiji), 12 AM UTC (12 PM Fiji), 5 AM UTC (5 PM Fiji), 9 AM UTC (9 PM Fiji)
+    # Fiji (UTC+12) conversion to UTC:
+    # 7 AM FJ = 19:00 UTC (Previous Day)
+    # 12 PM FJ = 00:00 UTC
+    # 5 PM FJ = 05:00 UTC
+    # 9 PM FJ = 09:00 UTC
     - cron: "0 19,0,5,9 * * *"
   workflow_dispatch: 
 
